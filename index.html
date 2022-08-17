@@ -49,7 +49,13 @@
       bottom: 0;
       left: 0;
       width: 100%;
+      background-color: transparent;
 
+    }
+
+    #zoom {
+      width: 20px;
+      margin-left: 20px;
     }
   </style>
   <title>PDF Viewer</title>
@@ -57,11 +63,18 @@
 
 <body>
   <div class="top-bar">
-    <button class="btn" id="prev-page">
-      <i class="fas fa-arrow-circle-left"></i> Prev Page
-    </button>
     <button class="btn" id="next-page">
-      Next Page <i class="fas fa-arrow-circle-right"></i>
+      <i class="fas fa-arrow-circle-left"></i> Next Page
+    </button>
+    <button class="btn" id="prev-page">
+      Prev Page <i class="fas fa-arrow-circle-right"></i>
+    </button>
+
+    <button onclick="zoominn()" id="zoom">
+      +
+    </button>
+    <button onclick="zoomoutt()" id="zoom">
+      -
     </button>
     <span class="page-info">
       Page <span id="page-num"></span> of <span id="page-count"></span>
@@ -74,29 +87,200 @@
 
   <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
   <script>
-    const url = './al hirz e saify.pdf';
+    var url = './al hirz e saify.pdf';
 
     let pdfDoc = null,
       pageNum = 1,
       pageIsRendering = false,
       pageNumIsPending = null;
 
-    const scale = 0.85,
+    var scale = 0.85,
       canvas = document.querySelector('#pdf-render'),
       ctx = canvas.getContext('2d');
 
+
+
+    function zoominn() {
+
+      scale+=0.3;
+      var renderPage = num => {
+        pageIsRendering = true;
+
+        // Get page
+        pdfDoc.getPage(num).then(page => {
+          // Set scale
+          var viewport = page.getViewport({ scale });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          var renderCtx = {
+            canvasContext: ctx,
+            viewport
+          };
+
+          page.render(renderCtx).promise.then(() => {
+            pageIsRendering = false;
+
+            if (pageNumIsPending !== null) {
+              renderPage(pageNumIsPending);
+              pageNumIsPending = null;
+            }
+          });
+
+          // Output current page
+          document.querySelector('#page-num').textContent = num;
+        });
+      };
+
+      var queueRenderPage = num => {
+        if (pageIsRendering) {
+          pageNumIsPending = num;
+        } else {
+          renderPage(num);
+        }
+      };
+
+      // Show Prev Page
+      var showPrevPage = () => {
+        if (pageNum <= 1) {
+          return;
+        }
+        pageNum--;
+        queueRenderPage(pageNum);
+      };
+
+      // Show Next Page
+      var showNextPage = () => {
+        if (pageNum >= pdfDoc.numPages) {
+          return;
+        }
+        pageNum++;
+        queueRenderPage(pageNum);
+      };
+
+      // Get Document
+      pdfjsLib
+        .getDocument(url)
+        .promise.then(pdfDoc_ => {
+          pdfDoc = pdfDoc_;
+
+          document.querySelector('#page-count').textContent = pdfDoc.numPages;
+
+          renderPage(pageNum);
+        })
+        .catch(err => {
+          // Display error
+          var div = document.createElement('div');
+          div.className = 'error';
+          div.appendChild(document.createTextNode(err.message));
+          document.querySelector('body').insertBefore(div, canvas);
+          // Remove top bar
+          document.querySelector('.top-bar').style.display = 'none';
+        });
+
+      // Button Events
+      document.querySelector('#prev-page').addEventListener('click', showPrevPage);
+      document.querySelector('#next-page').addEventListener('click', showNextPage);
+
+
+    }
     // Render the page
-    const renderPage = num => {
+    function zoomoutt() {
+
+      scale-=0.3;
+      var renderPage = num => {
+        pageIsRendering = true;
+
+        // Get page
+        pdfDoc.getPage(num).then(page => {
+          // Set scale
+          var viewport = page.getViewport({ scale });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          var renderCtx = {
+            canvasContext: ctx,
+            viewport
+          };
+
+          page.render(renderCtx).promise.then(() => {
+            pageIsRendering = false;
+
+            if (pageNumIsPending !== null) {
+              renderPage(pageNumIsPending);
+              pageNumIsPending = null;
+            }
+          });
+
+          // Output current page
+          document.querySelector('#page-num').textContent = num;
+        });
+      };
+
+      var queueRenderPage = num => {
+        if (pageIsRendering) {
+          pageNumIsPending = num;
+        } else {
+          renderPage(num);
+        }
+      };
+
+      // Show Prev Page
+      var showPrevPage = () => {
+        if (pageNum <= 1) {
+          return;
+        }
+        pageNum--;
+        queueRenderPage(pageNum);
+      };
+
+      // Show Next Page
+      var showNextPage = () => {
+        if (pageNum >= pdfDoc.numPages) {
+          return;
+        }
+        pageNum++;
+        queueRenderPage(pageNum);
+      };
+
+      // Get Document
+      pdfjsLib
+        .getDocument(url)
+        .promise.then(pdfDoc_ => {
+          pdfDoc = pdfDoc_;
+
+          document.querySelector('#page-count').textContent = pdfDoc.numPages;
+
+          renderPage(pageNum);
+        })
+        .catch(err => {
+          // Display error
+          var div = document.createElement('div');
+          div.className = 'error';
+          div.appendChild(document.createTextNode(err.message));
+          document.querySelector('body').insertBefore(div, canvas);
+          // Remove top bar
+          document.querySelector('.top-bar').style.display = 'none';
+        });
+
+      // Button Events
+      document.querySelector('#prev-page').addEventListener('click', showPrevPage);
+      document.querySelector('#next-page').addEventListener('click', showNextPage);
+
+
+    }
+
+    var renderPage = num => {
       pageIsRendering = true;
 
       // Get page
       pdfDoc.getPage(num).then(page => {
         // Set scale
-        const viewport = page.getViewport({ scale });
+        var viewport = page.getViewport({ scale });
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
-        const renderCtx = {
+        var renderCtx = {
           canvasContext: ctx,
           viewport
         };
@@ -115,8 +299,7 @@
       });
     };
 
-    // Check for pages rendering
-    const queueRenderPage = num => {
+    var queueRenderPage = num => {
       if (pageIsRendering) {
         pageNumIsPending = num;
       } else {
@@ -125,7 +308,7 @@
     };
 
     // Show Prev Page
-    const showPrevPage = () => {
+    var showPrevPage = () => {
       if (pageNum <= 1) {
         return;
       }
@@ -134,7 +317,7 @@
     };
 
     // Show Next Page
-    const showNextPage = () => {
+    var showNextPage = () => {
       if (pageNum >= pdfDoc.numPages) {
         return;
       }
@@ -154,7 +337,7 @@
       })
       .catch(err => {
         // Display error
-        const div = document.createElement('div');
+        var div = document.createElement('div');
         div.className = 'error';
         div.appendChild(document.createTextNode(err.message));
         document.querySelector('body').insertBefore(div, canvas);
@@ -165,6 +348,9 @@
     // Button Events
     document.querySelector('#prev-page').addEventListener('click', showPrevPage);
     document.querySelector('#next-page').addEventListener('click', showNextPage);
+
+    // Check for pages rendering
+
 
   </script>
 </body>
